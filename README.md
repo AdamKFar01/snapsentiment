@@ -16,7 +16,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-The API will be at `http://localhost:8000`. On first run, HuggingFace will download the model weights (~500 MB total) and cache them — subsequent starts are fast.
+The API will be at `http://localhost:8000`. On first run, HuggingFace will download the model weights (~900 MB total) and cache them — subsequent starts are fast.
 
 ## Frontend setup
 

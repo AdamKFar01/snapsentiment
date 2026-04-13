@@ -1,4 +1,4 @@
-/* ── Reset & base ─────────────────────────────────────────── */
+/* reset & base */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -35,7 +35,7 @@ body {
   line-height: 1.6;
 }
 
-/* ── Layout ───────────────────────────────────────────────── */
+/* layout */
 .app {
   min-height: 100vh;
   display: flex;
@@ -73,7 +73,7 @@ body {
   gap: 1.5rem;
 }
 
-/* ── Upload form ──────────────────────────────────────────── */
+/* upload form */
 .upload-form {
   display: flex;
   flex-direction: column;
@@ -173,7 +173,7 @@ body {
   cursor: not-allowed;
 }
 
-/* ── Loader ───────────────────────────────────────────────── */
+/* loader */
 .loader-wrap {
   display: flex;
   flex-direction: column;
@@ -200,7 +200,7 @@ body {
   font-size: 0.9rem;
 }
 
-/* ── Error box ────────────────────────────────────────────── */
+/* error */
 .error-box {
   padding: 1rem 1.25rem;
   background: var(--error-bg);
@@ -210,7 +210,7 @@ body {
   font-size: 0.9rem;
 }
 
-/* ── Result card ──────────────────────────────────────────── */
+/* result card */
 .result-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -290,7 +290,7 @@ body {
   color: var(--text-muted);
 }
 
-/* ── Mobile ───────────────────────────────────────────────── */
+/* mobile */
 @media (max-width: 480px) {
   .app-title {
     font-size: 1.7rem;

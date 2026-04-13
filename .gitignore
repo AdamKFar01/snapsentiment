@@ -12,13 +12,9 @@ build/
 
 # Node
 node_modules/
-dist/
 .env.local
 .env.*.local
 
 # OS
 .DS_Store
 Thumbs.db
-
-# HuggingFace model cache (optional — weights are large)
-# ~/.cache/huggingface/
