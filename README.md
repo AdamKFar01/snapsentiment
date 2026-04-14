@@ -2,8 +2,6 @@
 
 Upload one or more images, optionally add a caption, and get back an AI-generated description of each photo plus a sentiment read visualised as a confidence gauge. Supports side-by-side comparison of multiple images and keeps a session history of every analysis. Built as an end-to-end demo of HuggingFace vision and NLP models in a FastAPI + React stack — no database, no auth, no API keys.
 
-![Demo](docs/demo.png)
-
 ---
 
 ## Features
