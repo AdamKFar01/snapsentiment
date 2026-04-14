@@ -1,8 +1,18 @@
 # SnapSentiment
 
-Upload an image, optionally add a caption, and get back an AI-generated description of what's in the photo plus a sentiment read on the text. Built as a quick end-to-end demo of plugging HuggingFace vision and NLP models into a FastAPI + React stack — no database, no auth, just the interesting bits.
+Upload one or more images, optionally add a caption, and get back an AI-generated description of each photo plus a sentiment read visualised as a confidence gauge. Supports side-by-side comparison of multiple images and keeps a session history of every analysis. Built as an end-to-end demo of HuggingFace vision and NLP models in a FastAPI + React stack — no database, no auth, no API keys.
 
 ![Demo](docs/demo.png)
+
+---
+
+## Features
+
+- **Image description** via [BLIP](https://huggingface.co/Salesforce/blip-image-captioning-base) — generates a natural-language caption for whatever you upload
+- **Sentiment analysis** via [DistilBERT-SST-2](https://huggingface.co/distilbert-base-uncased-finetuned-sst-2-english) — runs on your caption if you supply one, or on the BLIP output if you don't
+- **Sentiment gauge** — SVG semicircle showing confidence score visually
+- **Multi-image comparison** — upload up to 4 images at once, results appear in a grid
+- **Session history** — every analysis is logged in-memory for the duration of your session; click any entry to restore it
 
 ---
 
@@ -36,4 +46,6 @@ Open `http://localhost:5173`. The Vite dev server proxies `/analyse` to the back
 
 **Why distilbert over VADER or TextBlob?** Rule-based approaches like VADER are great for social-media slang and emoji, but they fall apart on descriptive prose (which is what BLIP generates). A fine-tuned transformer handles that kind of text much more reliably. distilbert-SST-2 is tiny enough to run on CPU without being embarrassingly wrong.
 
-**No caption?** If you leave the caption field blank, sentiment is run on the model-generated image description instead, so you always get a result.
+**Multi-image requests** hit the single `/analyse` endpoint in parallel — no batch endpoint needed. The frontend fires `Promise.all` and assembles results as they come back.
+
+**Session history** lives in React state only — it clears on page refresh. That's intentional; there's no persistence layer.

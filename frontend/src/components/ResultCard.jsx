@@ -1,38 +1,31 @@
-// maps API label to something human-readable and a colour class
-const SENTIMENT_META = {
-  positive: { display: "Positive", colorClass: "sentiment-positive" },
-  negative: { display: "Negative", colorClass: "sentiment-negative" },
-  neutral:  { display: "Neutral",  colorClass: "sentiment-neutral"  },
-};
+import SentimentGauge from "./SentimentGauge";
 
-export default function ResultCard({ result }) {
-  const { sentiment, image_description, caption_used } = result;
-  const meta = SENTIMENT_META[sentiment.label] ?? SENTIMENT_META.neutral;
-  const confidence = Math.round(sentiment.score * 100);
+export default function ResultCard({ preview, filename, data }) {
+  const { sentiment, image_description, caption_used } = data;
+  // only show the caption row when the user supplied their own text
+  const userSuppliedCaption = caption_used !== image_description;
 
   return (
-    <div className="result-card">
-      <h2 className="result-title">Results</h2>
+    <article className="result-card">
+      <div className="result-image-wrap">
+        <img src={preview} alt={filename} className="result-image" />
+      </div>
 
-      <section className="result-section">
-        <span className="result-label">Image description</span>
-        <p className="result-value">{image_description}</p>
-      </section>
+      <div className="result-body">
+        <section className="result-section">
+          <span className="result-label">Image description</span>
+          <p className="result-value">{image_description}</p>
+        </section>
 
-      <section className="result-section">
-        <span className="result-label">Text analysed</span>
-        <p className="result-value result-caption-used">{caption_used}</p>
-      </section>
+        {userSuppliedCaption && (
+          <section className="result-section">
+            <span className="result-label">Caption analysed</span>
+            <p className="result-value result-caption">{caption_used}</p>
+          </section>
+        )}
 
-      <section className="result-section sentiment-row">
-        <span className="result-label">Sentiment</span>
-        <div className="sentiment-badge-wrap">
-          <span className={`sentiment-badge ${meta.colorClass}`}>
-            {meta.display}
-          </span>
-          <span className="confidence">{confidence}% confidence</span>
-        </div>
-      </section>
-    </div>
+        <SentimentGauge label={sentiment.label} score={sentiment.score} />
+      </div>
+    </article>
   );
 }

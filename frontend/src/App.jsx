@@ -1,6 +1,7 @@
 import { useState } from "react";
 import UploadForm from "./components/UploadForm";
 import ResultCard from "./components/ResultCard";
+import HistoryPanel from "./components/HistoryPanel";
 import Loader from "./components/Loader";
 import "./styles/main.css";
 
@@ -8,30 +9,46 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export default function App() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [results, setResults] = useState(null); // [{preview, filename, data}]
+  const [history, setHistory] = useState([]);   // [{id, time, items}]
   const [error, setError] = useState(null);
 
-  async function handleSubmit(image, caption) {
+  async function handleSubmit(files, caption) {
     setLoading(true);
-    setResult(null);
+    setResults(null);
     setError(null);
 
-    const formData = new FormData();
-    formData.append("image", image);
-    formData.append("caption", caption);
-
     try {
-      const res = await fetch(`${API_URL}/analyse`, {
-        method: "POST",
-        body: formData,
-      });
+      // fire all requests in parallel — backend is stateless so this is fine
+      const items = await Promise.all(
+        files.map(async file => {
+          const form = new FormData();
+          form.append("image", file);
+          form.append("caption", caption);
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || `Server error ${res.status}`);
-      }
+          const res = await fetch(`${API_URL}/analyse`, { method: "POST", body: form });
+          if (!res.ok) {
+            const d = await res.json().catch(() => ({}));
+            throw new Error(d.detail || `Server error ${res.status}`);
+          }
+          return {
+            preview: URL.createObjectURL(file),
+            filename: file.name,
+            data: await res.json(),
+          };
+        })
+      );
 
-      setResult(await res.json());
+      setResults(items);
+      setHistory(prev => [
+        {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          items,
+        },
+        ...prev,
+      ].slice(0, 20)); // keep last 20 sessions
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -43,22 +60,45 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1 className="app-title">SnapSentiment</h1>
-        <p className="app-subtitle">Upload an image, get a description and sentiment read</p>
+        <p className="app-subtitle">Image understanding · sentiment analysis · comparison</p>
       </header>
 
-      <main className="app-main">
-        <UploadForm onSubmit={handleSubmit} loading={loading} />
+      <div className="workspace">
+        <aside className="panel-form">
+          <UploadForm onSubmit={handleSubmit} loading={loading} />
+        </aside>
 
-        {loading && <Loader />}
+        <section className="panel-results" aria-live="polite">
+          {loading && <Loader />}
 
-        {error && (
-          <div className="error-box">
-            <strong>Something went wrong:</strong> {error}
-          </div>
-        )}
+          {error && (
+            <div className="error-box">
+              <strong>Error:</strong> {error}
+            </div>
+          )}
 
-        {result && !loading && <ResultCard result={result} />}
-      </main>
+          {results && !loading && (
+            <div className={`results-grid ${results.length > 1 ? "multi" : ""}`}>
+              {results.map((r, i) => (
+                <ResultCard key={i} preview={r.preview} filename={r.filename} data={r.data} />
+              ))}
+            </div>
+          )}
+
+          {!results && !loading && !error && (
+            <div className="empty-state">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.2">
+                <rect x="6" y="14" width="52" height="38" rx="5" />
+                <circle cx="21" cy="28" r="5" />
+                <path d="M6 42l14-11 10 9 8-7 20 18" />
+              </svg>
+              <p>Upload an image to get started</p>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <HistoryPanel history={history} onRestore={setResults} />
     </div>
   );
 }
