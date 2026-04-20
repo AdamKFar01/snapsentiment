@@ -1,57 +1,32 @@
 # SnapSentiment
 
-Image understanding and sentiment analysis — upload a photo, get a natural-language description and a sentiment read visualised as a confidence gauge.
-
-[Live Demo](YOUR_URL_HERE)
+Upload a photo and get back a natural-language description of what's in it, a positive/negative sentiment classification, and a confidence score — visualised as a semicircle gauge. The core idea is a two-model pipeline: BLIP handles the vision side (raw pixels → descriptive prose), then DistilBERT handles the NLP side (prose → sentiment label + score). Plugging a vision model and a language model together lets you run sentiment analysis on images without any labelled image-sentiment training data — the image captioner bridges the modality gap.
 
 ![Demo](docs/demo.png)
 
 ---
 
-## Technical Architecture
+## Features
 
-### Two-model pipeline
-
-Requests flow through two models in sequence:
-
-1. **BLIP** (`Salesforce/blip-image-captioning-base`) takes the raw image bytes and generates a natural-language description — e.g. "a dog running through a field of grass". This gives downstream NLP something to work with regardless of whether the user supplies their own caption.
-
-2. **DistilBERT-SST-2** (`distilbert-base-uncased-finetuned-sst-2-english`) runs sentiment classification on either the user's caption (if one was provided) or the BLIP output (if not). It returns a label (positive / negative) and a confidence score.
-
-The result includes both the generated description and whichever text was actually classified, so it's always clear what the model ran on.
-
-### Why DistilBERT over VADER or TextBlob
-
-Rule-based approaches like VADER are tuned for social-media text — short, emoji-heavy, colloquial. They fall apart on the kind of descriptive prose that BLIP generates ("a group of people standing in front of a building"). A transformer fine-tuned on SST-2 handles that register much more reliably. DistilBERT is also small enough to run on CPU without being embarrassingly slow or wrong.
-
-### Backend
-
-FastAPI app in `backend/main.py`. A single `POST /analyse` endpoint accepts multipart form data — an image file and an optional text caption. Both models are loaded once at startup using FastAPI's `lifespan` context manager rather than per-request, so the latency hit is paid once not every time. CORS is open for local development.
-
-```
-POST /analyse
-  image: File (JPEG, PNG, WebP, GIF)
-  caption: str (optional)
-
-→ { sentiment: { label, score }, image_description: str, caption_used: str }
-```
-
-### Frontend
-
-React + Vite single-page app in `frontend/`. Communicates with the backend via a plain `fetch` call posting a `FormData` object. In multi-image mode (up to 4 images), requests fire in parallel with `Promise.all`. The Vite dev server proxies `/analyse` to `localhost:8000` so there are no CORS issues during development.
-
-Session history is kept in React state — no persistence layer, clears on refresh.
+- Drag-and-drop image upload (up to 4 images; JPEG, PNG, WebP, GIF)
+- Optional caption input — type your own text or leave it blank
+- BLIP-generated image description shown on every result card
+- DistilBERT SST-2 sentiment classification (positive / negative)
+- Colour-coded result card: green for positive, red for negative
+- Confidence score rendered as an SVG semicircle gauge
+- Multi-image comparison mode — up to 4 images analysed in parallel
+- Session history panel — last 20 analyses, in-memory only
 
 ---
 
-## Models Used
+## Stack
 
-| Model | Task | HuggingFace |
-|---|---|---|
-| `Salesforce/blip-image-captioning-base` | Image captioning | [link](https://huggingface.co/Salesforce/blip-image-captioning-base) |
-| `distilbert-base-uncased-finetuned-sst-2-english` | Sentiment classification | [link](https://huggingface.co/distilbert-base-uncased-finetuned-sst-2-english) |
-
-Weights are downloaded automatically by HuggingFace on first run (~900 MB total) and cached locally.
+| Layer | Technology |
+|---|---|
+| Backend | FastAPI, Uvicorn |
+| ML models | HuggingFace `transformers` — BLIP (`blip-image-captioning-base`), DistilBERT (`distilbert-base-uncased-finetuned-sst-2-english`) |
+| Frontend | React 18, Vite 5 |
+| Styling | Plain CSS |
 
 ---
 
@@ -67,7 +42,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-API available at `http://localhost:8000`.
+API runs at `http://localhost:8000`. The single endpoint is `POST /analyse` — multipart form data with an `image` file and an optional `caption` string.
 
 ### Frontend
 
@@ -77,14 +52,16 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:5173`. The Vite dev server proxies `/analyse` to `localhost:8000` so there are no CORS issues during development.
 
 ---
 
 ## Notes
 
-**First run is slow.** BLIP loads ~900 MB of weights into memory at startup — allow 10–30 seconds depending on your machine. After that it's fast.
+**First run downloads ~900 MB of weights.** BLIP base is roughly 900 MB; DistilBERT adds another ~250 MB. HuggingFace downloads and caches them automatically on first startup — expect 10–30 seconds before the server starts accepting requests. Subsequent runs load from the local cache and are fast.
 
-**No caption?** Sentiment runs on the BLIP-generated description instead, so you always get a result.
+**Why DistilBERT instead of VADER?** VADER is tuned for social-media text — short phrases, emoji, slang. It performs poorly on the kind of descriptive prose BLIP generates ("a group of people sitting around a table"). DistilBERT fine-tuned on SST-2 handles that register reliably and runs on CPU without being painfully slow.
 
-**Multi-image mode** disables the caption field — each image is described independently by BLIP, which makes the comparison meaningful.
+**No caption provided?** Sentiment runs on the BLIP-generated description instead. You always get a result — the result card shows which text was actually classified so there's no ambiguity.
+
+**Multi-image mode** disables the caption field. Each image goes through BLIP independently, which keeps the comparison meaningful — each card reflects what the model actually sees in that image, not a shared caption.
